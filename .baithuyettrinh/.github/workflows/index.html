@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập Google + Lưu dữ liệu</title>
+  <style>
+    body { font-family: system-ui; padding: 30px; }
+    button { width: 100%; padding: 14px; font-size: 16px; margin-top: 20px; }
+    img { border-radius: 50%; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>Đăng nhập bằng Google</h2>
+<button id="login">Login with Google</button>
+<button id="logout" style="display:none;">Logout</button>
+<div id="user"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+// Cấu hình Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBySemZOJlp-YlkiT61EW2GBlXn4WQimgg",
+  authDomain: "sever-ecc2b.firebaseapp.com",
+  projectId: "sever-ecc2b",
+  storageBucket: "sever-ecc2b.firebasestorage.app",
+  messagingSenderId: "635616452642",
+  appId: "1:635616452642:web:6ef696c8f8b17f40c6aa7b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const loginBtn = document.getElementById("login");
+const logoutBtn = document.getElementById("logout");
+const userDiv = document.getElementById("user");
+
+// Nút login
+loginBtn.onclick = () => signInWithRedirect(auth, provider);
+
+// Nút logout
+logoutBtn.onclick = async () => {
+  await signOut(auth);
+  loginBtn.style.display = "block";
+  logoutBtn.style.display = "none";
+  userDiv.innerHTML = "";
+};
+
+// Xử lý redirect sau login
+getRedirectResult(auth).then(async result => {
+  if (result && result.user) {
+    const u = result.user;
+
+    // Hiển thị user
+    userDiv.innerHTML = `
+      <p>Xin chào <b>${u.displayName}</b></p>
+      <p>Email: ${u.email}</p>
+      <img src="${u.photoURL}" width="80">
+    `;
+    loginBtn.style.display = "none";
+    logoutBtn.style.display = "block";
+
+    // Lưu dữ liệu vào Firestore
+    await setDoc(doc(db, "users", u.uid), {
+      displayName: u.displayName,
+      email: u.email,
+      photoURL: u.photoURL,
+      lastLogin: new Date().toISOString()
+    });
+  }
+}).catch(error => {
+  console.error("Login error:", error);
+  alert("Login thất bại, kiểm tra console để xem chi tiết.");
+});
+</script>
+
+</body>
+</html>
